@@ -1,0 +1,465 @@
+Modelling GWLR - Using the GWR4 software
+______________________________________________________________
+
+1. We developed a Geographically Weighted Logistic Regression (GWLR) model using the GWR4 software. An open-source geographically weighted regression software developed by Brunsdon, Fortheringham, and Charlton.
+
+2. We obtained and installed GWR4 from the official website, followed by detailed data preparation. Our dataset, formatted as a CSV file, included a binary dependent variable (malaria rapid diagnostic test), the independent variables, and geographical coordinates (latitude and longitude) for each observation.
+
+3 Upon launching GWR4, we loaded our prepared dataset into the software. In the Model tab, we specified "Logistic (binary)" as the model type and selected our dependent and independent variables. We then set the geographical coordinates in the Coordinates tab, ensuring proper spatial referencing for our analysis.
+
+4. For the kernel function and bandwidth selection, we opted for an Adaptive Bi-square kernel with AICc (Akaike Information Criterion corrected) as the bandwidth selection method. 
+
+5. We configured the output settings to save comprehensive diagnostic information and statistics. After running the model, which took about 20 minutes, GWR4 generated several output files. These included the main results file with global model statistics, bandwidth selection results, and model diagnostics, as well as a file containing local parameter estimates for each location.
+
+6. To map (visualize) our results, we exported the local parameter estimates and used the R programming language to create maps illustrating the spatial variations in our model parameters.
+
+7. The R codes for mapping of results is provided below.
+
+
+
+
+###  R codes for mapping GWLR results ###
+################################################################################
+################################################################################
+
+### Load required packages, setting working directory and other preliminaries ##
+#____________________________________________________________________________________
+
+# Load required packages
+library(datasets)  # Contains iris dataset
+library(cluster)   # Clustering algorithms
+library(factoextra) # Visualization
+library(purrr)     # To use map_dbl() function
+library(ClustGeo)  # Geographical clustering
+library(dendextend) # Extended dendrogram functionality
+library(maptools)  # Tools for handling spatial objects
+library(GWmodel)   # Geographically weighted models
+library(sp)        # Classes and methods for spatial data
+library(spdep)     # Spatial dependence: weighting schemes, statistics and models
+library(spData)    # Datasets for spatial analysis
+library(sf)        # Simple features for R
+library(mapdata)   # Supplement to maps package, providing more detailed regions
+library(RColorBrewer) # Color palettes for maps
+library(classInt)  # Choose univariate class intervals
+library(ape)       # Analyses of Phylogenetics and Evolution
+library(tmap)      # Thematic maps
+library(cartogram) # Create cartograms with R
+library(car)       # Companion to Applied Regression
+library(ggplot2)   # Data visualization package
+
+# Install latticeExtra package
+install.packages("latticeExtra")
+require(latticeExtra)
+
+# Set working directory
+#setwd("C:/Users/USER/Dropbox/Thesis_R/manuscript/shp") # Work directory (commented out)
+setwd("C:/Users/USER/Dropbox")  # Current working directory
+
+# Import shapefile
+Ghanamap1 <- readShapeSpatial("for_R^2.shp")  # Read spatial data from shapefile
+
+# Open a new graphics device and set its size
+X11(width = 4, height = 5)
+
+# Plot the shapefile
+plot(Ghanamap1)
+
+# Display the structure of the data associated with the shapefile
+str(Ghanamap1@data)
+
+
+## MAPPING ESTIMATES ##
+#_________________________________________________________
+
+# Create a summary of the intercept estimates
+summary(Ghanamap1$est_I_cept)
+
+# Open a new graphics device with specified dimensions
+X11(width = 4, height = 5)
+
+# Create a sequence of values for the color scale
+at <- seq(from=-3.941, to=0.07, length=100)
+
+# Define a color palette from cyan to yellow to red
+col5 <- colorRampPalette(c("cyan", "yellow","red"))(100)
+
+# Create a spatial plot for the intercept estimates
+spplot(Ghanamap1,                     # The spatial object to be plotted
+       c("est_I_cept"),               # The variable to be plotted
+       col="transparent",             # Set the color of the polygons to transparent
+       at=at,                         # Use the custom break points for the color scale
+       col.regions = col5,            # Use the custom color palette
+       main="Estimate_Intercept",     # Set the title of the plot
+       colorkey=TRUE) +               # Add a color key to the plot
+  # Add an additional layer to the plot
+  latticeExtra::layer(
+    sp.polygons(Ghanamap1,            # The spatial object for the polygons
+                fill = NA,            # Set the fill of the polygons to transparent
+                col='black')          # Set the color of the polygon borders to black
+  )
+
+# Repeat the process for child's age estimates
+summary(Ghanamap1$est_ageC)
+X11(width = 4, height = 5)
+at <- seq(from=0.0260, to=0.048, length=100)
+col5 <- colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("est_ageC"), col="transparent", at=at,
+       col.regions = col5, main="child's age", colorkey=TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+# Repeat for age of household head estimates
+summary(Ghanamap1$est_ageH)
+X11(width = 4, height = 5)
+at <- seq(from=-0.041, to=0.013, length=100)
+col5 <- colorRampPalette(c("red", "yellow","cyan"))(100)
+
+spplot(Ghanamap1, c("est_ageH"), col="transparent", at=at,
+       col.regions = col5, main="Age of household head", colorkey=TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+# Repeat for child's anemia status estimates
+summary(Ghanamap1$est_a_miaN)
+X11(width = 4, height = 5)
+at <- seq(from=-1.621, to=-0.87, length=100)
+col5 <- colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("est_a_miaN"), col="transparent", at=at,
+       col.regions = col5, main="child's aneamia status", colorkey=TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+# Repeat for wealth index (Middle) estimates
+summary(Ghanamap1$est_w_lthM)
+X11(width = 4, height = 5)
+at <- seq(from=-2.2, to=-0.49, length=100)
+col5 <- colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("est_w_lthM"), col="transparent", at=at,
+       col.regions = col5, main="Wealth index (M)", colorkey=TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+# Repeat for wealth index (Rich) estimates
+summary(Ghanamap1$est_w_lthR)
+X11(width = 4, height = 5)
+at <- seq(from=-2.16, to=-0.42, length=100)
+col5 <- colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("est_w_lthR"), col="transparent", at=at,
+       col.regions = col5, main="Wealth index (R)", colorkey=TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+# Repeat for NHIS status estimates
+summary(Ghanamap1$est_nhisN)
+X11(width = 4, height = 5)
+at <- seq(from=-0.06, to=0.52, length=100)
+col5 <- colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("est_nhisN"), col="transparent", at=at,
+       col.regions = col5, main="NHIS status", colorkey=TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+# Repeat for child's dwelling sprayed estimates
+summary(Ghanamap1$est_sprayN)
+X11(width = 4, height = 5)
+at <- seq(from=-0.065, to=2.72, length=100)
+col5 <- colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("est_sprayN"), col="transparent", at=at,
+       col.regions = col5, main="Child's dwelling sprayed", colorkey=TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+# Repeat for child's place of residence estimates
+summary(Ghanamap1$est_resU)
+X11(width = 4, height = 5)
+at <- seq(from = -1.51, to = -0.1, length=100)
+col5 <- colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("est_resU"), col="transparent", at=at,
+       col.regions = col5, main="Child's place of residence", colorkey=TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+# Repeat for electricity availability estimates
+summary(Ghanamap1$est_elecN)
+X11(width = 4, height = 5)
+at <- seq(from = 0.2640, to = 0.91, length=100)
+col5 <- colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("est_elecN"), col="transparent", at=at,
+       col.regions = col5, main="Electricity availability", colorkey=TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+# Repeat for anemia status estimates
+summary(Ghanamap1$est_a_mia2)
+X11(width = 4, height = 5)
+at <- seq(from = 0.6, to = 1.5, length=100)
+col5 <- colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("est_a_mia2"), col="transparent", at=at,
+       col.regions = col5, main = "Anemia status", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+# Repeat for dwelling sprayed estimates
+summary(Ghanamap1$est_d_ray2)
+X11(width = 4, height = 5)
+at <- seq(from = 0.02, to = 2.5, length=100)
+col5 <- colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("est_d_ray2"), col="transparent", at=at,
+       col.regions = col5, main = "Dwelling sprayed", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+
+## MAPPING P-VALUES ##
+#________________________________________________________________________
+
+# Plot for P-value of Intercept
+summary(Ghanamap1$p_Int_cept)  # Summarize the p-values for the intercept
+X11(width = 4, height = 5)     # Open a new graphics window
+at <- seq(from = 0, to = 1, length=100)  # Create a sequence for color scale
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)  # Define color palette
+
+# Create spatial plot for intercept p-values
+spplot(Ghanamap1,                 # Spatial object to be plotted
+       c("p_Int_cept"),           # Variable to be plotted
+       col="transparent",         # Set polygon color to transparent
+       at=at,                     # Use custom break points for color scale
+       col.regions = col5,        # Use custom color palette
+       main = "Intercept",        # Set plot title
+       colorkey = TRUE) +         # Add a color key to the plot
+  # Add an additional layer with polygon borders
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+# Plot for P-value of Sex of household head
+summary(Ghanamap1$P.val__sex)
+X11(width = 4, height = 5)
+at <- seq(from = 0, to = 1.2, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("P.val__sex"), col="transparent", at=at,
+       col.regions = col5, main = "Sex of household head", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# Plot for P-value of Age of household head
+summary(Ghanamap1$p_ageH)
+X11(width = 4, height = 5)
+at <- seq(from = 0, to = 1, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("p_ageH"), col="transparent", at=at,
+       col.regions = col5, main = "Age of household head", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# Plot for P-value of Mosquito net use
+summary(Ghanamap1$P.val__mos)
+X11(width = 4, height = 5)
+at <- seq(from = 0, to = 1.2, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("P.val__mos"), col="transparent", at=at,
+       col.regions = col5, main = "Mosquito net use", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# Plot for P-value of Wealth index (Middle)
+summary(Ghanamap1$p_wealthM)
+X11(width = 4, height = 5)
+at <- seq(from = 0, to = 0.25, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("p_wealthM"), col="transparent", at=at,
+       col.regions = col5, main = "Wealth index (M)", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# Plot for P-value of Wealth index (Rich)
+summary(Ghanamap1$p_wealthR)
+X11(width = 4, height = 5)
+at <- seq(from = 0, to = 0.43, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("p_wealthR"), col="transparent", at=at,
+       col.regions = col5, main = "Wealth index (rich)", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# Plot for P-value of Child age in months
+summary(Ghanamap1$P.val_mons)
+X11(width = 4, height = 5)
+at <- seq(from = 0, to = 0.05, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("P.val_mons"), col="transparent", at=at,
+       col.regions = col5, main = "Child age in months", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# Plot for P-value of Child age
+summary(Ghanamap1$p_ageC)
+X11(width = 4, height = 5)
+at <- seq(from = 0, to = 0.01, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("p_ageC"), col="transparent", at=at,
+       col.regions = col5, main = "Child age", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# Plot for P-value of Place of residence
+summary(Ghanamap1$p_resU)
+X11(width = 4, height = 5)
+at <- seq(from = 0, to = 0.8, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("p_resU"), col="transparent", at=at,
+       col.regions = col5, main = "Place of residence", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# Plot for P-value of Electricity availability
+summary(Ghanamap1$p_elecN)
+X11(width = 4, height = 5)
+at <- seq(from = 0, to = 0.5, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("p_elecN"), col="transparent", at=at,
+       col.regions = col5, main = "Electricity availability", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# repeat for P-value of Anemia status
+summary(Ghanamap1$p_anemiaN)
+X11(width = 4, height = 5)
+at <- seq(from = 0, to = 0.01, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("p_anemiaN"), col="transparent", at=at,
+       col.regions = col5, main = "Anemia status", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# repeat for P-value of NHIS status
+summary(Ghanamap1$p_nhisN)
+X11(width = 4, height = 5)
+at <- seq(from = 0.03400, to = 0.99, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("p_nhisN"), col="transparent", at=at,
+       col.regions = col5, main = "NHIS status", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# repeat for P-value of Dwelling spray
+summary(Ghanamap1$p_sprayN)
+X11(width = 4, height = 5)
+at <- seq(from = 0, to = 1, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("p_sprayN"), col="transparent", at=at,
+       col.regions = col5, main = "Dwelling spray", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+
+## MAPPING ODD RATIO ##
+#_________________________________________________________________________
+
+
+# Plot for Odds ratio of Intercept
+summary(Ghanamap1$odds__cept)  # Summarize the p-values for the intercept
+X11(width = 4, height = 5)     # Open a new graphics window
+at <- seq(from = 0, to = 1, length=100)  # Create a sequence for color scale
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)  # Define color palette
+
+# Create spatial plot for intercept p-values
+spplot(Ghanamap1,                 # Spatial object to be plotted
+       c("odds__cept"),           # Variable to be plotted
+       col="transparent",         # Set polygon color to transparent
+       at=at,                     # Use custom break points for color scale
+       col.regions = col5,        # Use custom color palette
+       main = "Intercept",        # Set plot title
+       colorkey = TRUE) +         # Add a color key to the plot
+  # Add an additional layer with polygon borders
+  latticeExtra::layer(sp.polygons(Ghanamap1, fill = NA, col='black'))
+
+# repeat for Odds ratio of Sex of household head
+summary(Ghanamap1$Odds_sex)
+X11(width = 4, height = 5)
+at <- seq(from = 0.5, to = 1.04, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("Odds_sex"), col="transparent", at=at,
+       col.regions = col5, main = "Sex of household head", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# repeat for Odds ratio of Age of household head
+summary(Ghanamap1$odds_ageH)
+X11(width = 4, height = 5)
+at <- seq(from = 0.9610, to = 1.0150, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("odds_ageH"), col="transparent", at=at,
+       col.regions = col5, main = "Age of household head", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# repeat for Odds ratio of Mosquito net use
+summary(Ghanamap1$Odds_mos)
+X11(width = 4, height = 5)
+at <- seq(from = 0.3, to = 1.61, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("Odds_mos"), col="transparent", at=at,
+       col.regions = col5, main = "Mosquito net use", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# repeat for Odds ratio of Wealth index (Middle)
+summary(Ghanamap1$odds__lthM)
+X11(width = 4, height = 5)
+at <- seq(from = 0.1, to = 0.7, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("odds__lthM"), col="transparent", at=at,
+       col.regions = col5, main = "Wealth index (M)", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# repeat for Odds ratio of Wealth index (Rich)
+summary(Ghanamap1$odds__lthR)
+X11(width = 4, height = 5)
+at <- seq(from = 0.1, to = 0.7, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("odds__lthR"), col="transparent", at=at,
+       col.regions = col5, main = "Wealth index (R)", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# repeat for Odds ratio of Child age in months
+summary(Ghanamap1$Odds_mons)
+X11(width = 4, height = 5)
+at <- seq(from = 1, to = 1.1, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("Odds_mons"), col="transparent", at=at,
+       col.regions = col5, main = "Child age in months", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# repeat for Odds ratio of Child sex
+summary(Ghanamap1$Odds_child)
+X11(width = 4, height = 5)
+at <- seq(from = 0.5, to = 1.41, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("Odds_child"), col="transparent", at=at,
+       col.regions = col5, main = "Child sex", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# repeat for Odds ratio of Place of residence
+summary(Ghanamap1$odds_resU)
+X11(width = 4, height = 5)
+at <- seq(from = 0.2, to = 0.9, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("odds_resU"), col="transparent", at=at,
+       col.regions = col5, main = "Place of residence", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+# repeat for Odds ratio of Electricity availability
+summary(Ghanamap1$odds_elecN)
+X11(width = 4, height = 5)
+at <- seq(from = 1.3, to = 2.5, length=100)
+col5=colorRampPalette(c("cyan", "yellow","red"))(100)
+
+spplot(Ghanamap1, c("odds_elecN"), col="transparent", at=at,
+       col.regions = col5, main = "Electricity availability", colorkey = TRUE) +  
+  latticeExtra::layer(sp.polygons(Ghanamap1,  fill = NA, col='black'))
+
+
+
